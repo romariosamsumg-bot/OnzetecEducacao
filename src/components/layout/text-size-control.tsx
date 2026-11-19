@@ -23,10 +23,6 @@ export function TextSizeControl() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setCurrent(document.documentElement.getAttribute("data-text-scale") ?? "100");
-  }, [open]);
-
-  useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     const onClick = (e: MouseEvent) => {
@@ -46,7 +42,10 @@ export function TextSizeControl() {
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setCurrent(document.documentElement.getAttribute("data-text-scale") ?? "100");
+          setOpen((o) => !o);
+        }}
         className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-3 font-semibold text-navy-900 hover:bg-navy-100"
       >
         <Type aria-hidden className="size-5" />

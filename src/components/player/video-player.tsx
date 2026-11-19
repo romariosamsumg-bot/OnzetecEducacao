@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Captions, CaptionsOff, Maximize, Pause, Play, RotateCcw, RotateCw, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/components/ui/button";
 import { saveProgress } from "@/server/actions/interactions";
@@ -49,7 +49,20 @@ export function VideoPlayer({ contentId, src, type, poster, captions, title, ini
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [muted, setMuted] = useState(false);
-  const [captionsOn, setCaptionsOn] = useState(true);
+  // Preferência de legendas salva no aparelho (lida sem causar renderizações em cascata)
+  const storedCaptions = useSyncExternalStore(
+    () => () => {},
+    () => {
+      try {
+        return localStorage.getItem("oz_captions");
+      } catch {
+        return null;
+      }
+    },
+    () => null,
+  );
+  const [captionsOverride, setCaptionsOn] = useState<boolean | null>(null);
+  const captionsOn = captionsOverride ?? storedCaptions !== "off";
   const [ended, setEnded] = useState(false);
   const [resumeFrom, setResumeFrom] = useState<number | null>(null);
   const [announce, setAnnounce] = useState("");
@@ -77,13 +90,6 @@ export function VideoPlayer({ contentId, src, type, poster, captions, title, ini
     }
     return () => destroy?.();
   }, [src, type]);
-
-  useEffect(() => {
-    try {
-      const pref = localStorage.getItem("oz_captions");
-      if (pref === "off") setCaptionsOn(false);
-    } catch {}
-  }, []);
 
   useEffect(() => {
     const v = videoRef.current;

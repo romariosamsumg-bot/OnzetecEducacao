@@ -42,14 +42,14 @@ export default async function CategoriasAdmin() {
       <PageHeader title="Categorias" description="Novas categorias aparecem automaticamente em Aprender, sem mudar código." />
       <Card className="p-5">
         <h2 className="mb-3 text-[1.15rem] font-bold text-navy-900">Nova categoria</h2>
-        <ActionForm action={saveCategory} submitLabel="Criar categoria"><Fields /></ActionForm>
+        <ActionForm scope="categoria-nova" action={saveCategory} submitLabel="Criar categoria"><Fields /></ActionForm>
       </Card>
       {cats.map((c) => (
         <details key={c.id} className="rounded-[var(--radius-card)] border border-line bg-white p-4">
           <summary className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold text-navy-900">
             <CategoryIcon name={c.icon} className="size-5 text-navy-700" /> {c.name} {!c.isActive ? <span className="text-ink-muted">(oculta)</span> : null}
           </summary>
-          <div className="pt-4"><ActionForm action={saveCategory}><Fields c={c} /></ActionForm></div>
+          <div className="pt-4"><ActionForm scope={`categoria-${c.id}`} action={saveCategory}><Fields c={c} /></ActionForm></div>
         </details>
       ))}
     </div>

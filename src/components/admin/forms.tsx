@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
-import type { FormState } from "@/components/ui/form";
+import { FieldScopeProvider, type FormState } from "@/components/ui/form";
 import { Alert } from "@/components/ui/primitives";
 import { ImageUploader } from "./editors";
 
@@ -19,12 +19,15 @@ export function ActionForm({
   submitLabel = "Salvar",
   className = "space-y-4",
   encType,
+  scope,
 }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
   children: React.ReactNode;
   submitLabel?: string;
   className?: string;
   encType?: "multipart/form-data";
+  /** Identificador único do formulário (evita ids repetidos entre páginas). */
+  scope: string;
 }) {
   const [state, formAction] = useActionState<FormState, FormData>(action, {});
   const errors = Object.entries(state.errors ?? {}).filter(([, v]) => v?.length);
@@ -38,7 +41,7 @@ export function ActionForm({
           </ul>
         </Alert>
       ) : null}
-      {children}
+      <FieldScopeProvider scope={scope}>{children}</FieldScopeProvider>
       <SubmitButton label={submitLabel} />
     </form>
   );

@@ -1,5 +1,22 @@
-import type { ComponentProps, ReactNode } from "react";
+"use client";
+
+import { createContext, useContext, useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "./button";
+
+/**
+ * Escopo de IDs por formulário. Necessário porque o Next.js mantém páginas
+ * anteriores ocultas no DOM (Activity): sem escopo, rótulos de páginas diferentes
+ * poderiam apontar para campos com o mesmo id.
+ */
+const FieldScope = createContext("");
+export function FieldScopeProvider({ scope, children }: { scope: string; children: ReactNode }) {
+  return <FieldScope value={scope.replace(/[^a-zA-Z0-9-]/g, "")}>{children}</FieldScope>;
+}
+function useFieldId(name: string, id?: string) {
+  const scope = useContext(FieldScope);
+  const auto = useId().replace(/[^a-zA-Z0-9]/g, "");
+  return id ?? `f-${scope ? `${scope}-` : ""}${name}-${auto}`;
+}
 
 const controlBase =
   "block w-full rounded-[var(--radius-control)] border-2 border-line bg-white px-4 text-base text-ink " +
@@ -59,7 +76,7 @@ export function TextField({
   id,
   ...rest
 }: FieldProps & ComponentProps<"input">) {
-  const fid = id ?? `f-${name}`;
+  const fid = useFieldId(name, id);
   return (
     <FieldShell id={fid} label={label} hint={hint} error={error} optional={optional}>
       <input
@@ -84,7 +101,7 @@ export function TextArea({
   id,
   ...rest
 }: FieldProps & ComponentProps<"textarea">) {
-  const fid = id ?? `f-${name}`;
+  const fid = useFieldId(name, id);
   return (
     <FieldShell id={fid} label={label} hint={hint} error={error} optional={optional}>
       <textarea
@@ -110,7 +127,7 @@ export function SelectField({
   children,
   ...rest
 }: FieldProps & ComponentProps<"select">) {
-  const fid = id ?? `f-${name}`;
+  const fid = useFieldId(name, id);
   return (
     <FieldShell id={fid} label={label} hint={hint} error={error} optional={optional}>
       <select

@@ -112,9 +112,11 @@ export async function getCourse(userId: string | null, slug: string): Promise<Co
       select id, title, description from public.course_modules where course_id = ${course.id} order by position, created_at`;
     const lessons = await db<(ContentCard & { moduleId: string; completed: boolean; positionSeconds: number })[]>`
       select ${cardColumns(db)}, ci.module_id,
-        (p.completed_at is not null) as completed, coalesce(p.position_seconds, 0) as position_seconds
+        ${userId
+          ? db`(p.completed_at is not null) as completed, coalesce(p.position_seconds, 0) as position_seconds`
+          : db`false as completed, 0 as position_seconds`}
       from ${cardFrom(db)}
-      left join public.progress p on ${userId ? db`p.content_id = ci.id and p.user_id = auth.uid()` : db`false`}
+      ${userId ? db`left join public.progress p on p.content_id = ci.id and p.user_id = auth.uid()` : db``}
       where ci.course_id = ${course.id} and ci.module_id is not null
       order by ci.position, ci.created_at`;
 

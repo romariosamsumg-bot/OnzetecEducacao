@@ -38,9 +38,9 @@ export function BookFields({ v }: { v: BookValues }) {
       <CoverField name="coverImageUrl" initial={v.coverImageUrl} folder="books" label="Capa do livro" />
       <TextField label="Amostra grátis (endereço de um PDF público)" name="sampleUrl" defaultValue={v.sampleUrl} optional />
       <div className="space-y-1">
-        <label htmlFor="f-file" className="block font-semibold text-navy-900">Arquivo do livro (PDF ou EPUB)</label>
+        <label htmlFor={`arquivo-${v.id ?? "novo"}`} className="block font-semibold text-navy-900">Arquivo do livro (PDF ou EPUB)</label>
         <p className="text-[0.9rem] text-ink-muted">{v.hasFile ? "Já existe um arquivo. Envie outro apenas para substituir." : "Ainda não há arquivo."} Guardado em área privada; só quem tem direito recebe um link temporário.</p>
-        <input id="f-file" name="file" type="file" accept="application/pdf,application/epub+zip" className="block min-h-12 w-full rounded-[var(--radius-control)] border-2 border-dashed border-line bg-white p-2" />
+        <input id={`arquivo-${v.id ?? "novo"}`} name="file" type="file" accept="application/pdf,application/epub+zip" className="block min-h-12 w-full rounded-[var(--radius-control)] border-2 border-dashed border-line bg-white p-2" />
       </div>
     </>
   );

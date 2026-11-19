@@ -158,7 +158,9 @@ export async function saveContent(_prev: FormState, fd: FormData): Promise<FormS
           values (${videoProvider}, ${videoAssetId}, ${status}, ${durationSeconds}, ${posterUrl}, ${json(captions)})
           on conflict (provider, provider_asset_id) do update set status = excluded.status,
             duration_seconds = coalesce(excluded.duration_seconds, public.video_assets.duration_seconds),
-            poster_url = excluded.poster_url, captions = excluded.captions
+            -- O mesmo vídeo pode estar em mais de um conteúdo: não apagar legenda/miniatura já cadastradas
+            poster_url = coalesce(excluded.poster_url, public.video_assets.poster_url),
+            captions = case when jsonb_array_length(excluded.captions) > 0 then excluded.captions else public.video_assets.captions end
           returning id`;
         videoId = va.id;
       }

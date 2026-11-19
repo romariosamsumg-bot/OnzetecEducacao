@@ -27,7 +27,7 @@ export default async function PlanosAdmin() {
         <Card key={p.id} className="p-5">
           <h2 className="mb-1 text-[1.2rem] font-bold text-navy-900">{p.name} <span className="font-normal text-ink-muted">({p.interval === "year" ? "anual" : "mensal"})</span></h2>
           <p className="mb-4 text-[0.95rem] text-ink-muted">{p.subscribers} pessoa(s) com acesso por este plano.</p>
-          <ActionForm action={savePlan} submitLabel="Salvar plano">
+          <ActionForm scope={`plano-${p.id}`} action={savePlan} submitLabel="Salvar plano">
             <input type="hidden" name="id" value={p.id} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <TextField label="Nome" name="name" id={`n-${p.id}`} defaultValue={p.name} required />

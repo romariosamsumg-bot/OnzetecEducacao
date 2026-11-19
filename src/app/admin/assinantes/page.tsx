@@ -34,7 +34,7 @@ export default async function AssinantesAdmin({ searchParams }: Props) {
       <PageHeader title="Assinantes" description="Dados mínimos: nome, plano e situação. Dados de cartão ficam somente no Mercado Pago." />
       <Card className="p-5">
         <h2 className="mb-3 text-[1.15rem] font-bold text-navy-900">Conceder acesso de cortesia</h2>
-        <ActionForm action={grantCourtesy} submitLabel="Conceder acesso" className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_10rem_auto] sm:items-end">
+        <ActionForm scope="cortesia" action={grantCourtesy} submitLabel="Conceder acesso" className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_10rem_auto] sm:items-end">
           <TextField label="E-mail da conta" name="email" type="email" required />
           <TextField label="Dias de acesso" name="days" type="number" min={1} max={730} defaultValue={30} required />
         </ActionForm>

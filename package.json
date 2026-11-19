@@ -6,7 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:migrate:local": "tsx scripts/db-migrate.ts --local",
+    "db:seed": "tsx scripts/db-seed.ts",
+    "db:seed:dev": "tsx scripts/db-seed.ts --dev-users",
+    "admin:grant": "tsx scripts/grant-admin.ts",
+    "media:demo": "bash scripts/generate-demo-media.sh",
+    "test": "vitest run",
+    "test:e2e": "playwright test --trace off",
+    "test:all": "npm run lint && npm run typecheck && npm test && npm run test:e2e"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -33,5 +43,8 @@
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.1.1"
+  },
+  "engines": {
+    "node": ">=20.9"
   }
 }

@@ -60,8 +60,9 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/97 backdrop-blur-sm">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-        <Link href="/" className="flex min-h-11 items-center rounded-lg" aria-label="Onzetec Educação — página inicial">
+        <Link href="/" className="flex min-h-11 items-center rounded-lg">
           <Logo />
+          <span className="sr-only">, página inicial</span>
         </Link>
         <Suspense fallback={<DesktopNavFallback />}>
           <DesktopNav />

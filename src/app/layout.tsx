@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible_Next } from "next/font/google";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { preferencesScript } from "@/lib/inline-scripts";
 import "./globals.css";
 
@@ -43,7 +44,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <script dangerouslySetInnerHTML={{ __html: preferencesScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <RegisterServiceWorker />
+      </body>
     </html>
   );
 }

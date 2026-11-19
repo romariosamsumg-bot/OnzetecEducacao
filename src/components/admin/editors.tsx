@@ -215,12 +215,13 @@ export function BlocksEditor({ initial }: { initial: ArticleBlock[] }) {
 
 export function StreamUploader({ premium, onUploaded }: { premium: boolean; onUploaded: (uid: string) => void }) {
   const ref = useRef<HTMLInputElement>(null);
+  const fileId = useId();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   return (
     <div className="space-y-2">
-      <input ref={ref} type="file" accept="video/*" className="sr-only" id="stream-file" onChange={async (e) => {
+      <input ref={ref} type="file" accept="video/*" className="sr-only" id={fileId} onChange={async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         setBusy(true);
@@ -243,7 +244,7 @@ export function StreamUploader({ premium, onUploaded }: { premium: boolean; onUp
         }
         setBusy(false);
       }} />
-      <label htmlFor="stream-file" className={cn("inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border-2 border-navy-900 px-4 font-semibold text-navy-900 hover:bg-navy-50", busy && "pointer-events-none opacity-60")}>
+      <label htmlFor={fileId} className={cn("inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border-2 border-navy-900 px-4 font-semibold text-navy-900 hover:bg-navy-50", busy && "pointer-events-none opacity-60")}>
         <Upload aria-hidden className="size-5" /> Enviar arquivo de vídeo
       </label>
       {status ? <p role="status" className="text-[0.95rem] text-ink-soft">{status}</p> : null}

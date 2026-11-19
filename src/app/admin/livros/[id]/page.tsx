@@ -29,7 +29,7 @@ export default async function EditarLivro({ params, searchParams }: Props) {
       <PageHeader title={r.title} back={{ href: "/admin/livros", label: "Livros" }} />
       {sp.salvo ? <Alert tone="success" live>Livro salvo.</Alert> : null}
       <Card className="p-5">
-        <ActionForm action={saveBook} submitLabel="Salvar livro">
+        <ActionForm scope={`livro-${r.id}`} action={saveBook} submitLabel="Salvar livro">
           <BookFields v={{
             id: r.id, title: r.title, slug: r.slug, author: r.author, synopsis: r.synopsis, toc: r.tableOfContents ?? [], format: r.format,
             pages: r.pages, price: centsToInput(r.priceCents), status: r.status, publishedAtInput: toBrasiliaInput(r.publishedAt),

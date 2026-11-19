@@ -121,7 +121,7 @@ export default async function EditarCurso({ params, searchParams }: Props) {
 
       <Card className="p-5">
         <h2 className="mb-4 text-[1.2rem] font-bold text-navy-900">Informações do curso</h2>
-        <ActionForm action={saveCourse} submitLabel="Salvar curso">
+        <ActionForm scope={`curso-${c.id}`} action={saveCourse} submitLabel="Salvar curso">
           <CourseFields
             categories={categories}
             v={{

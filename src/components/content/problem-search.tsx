@@ -1,5 +1,8 @@
+"use client";
+
 import Form from "next/form";
 import { Search } from "lucide-react";
+import { useId } from "react";
 import { cn } from "@/components/ui/button";
 
 /** Campo de busca por problema, em linguagem do dia a dia. Funciona sem JavaScript. */
@@ -16,10 +19,11 @@ export function ProblemSearch({
   showLabel?: boolean;
   onDark?: boolean;
 }) {
+  const inputId = `busca-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
     <Form action="/resolver" role="search" className="w-full">
       <label
-        htmlFor="busca-problema"
+        htmlFor={inputId}
         className={cn(
           "mb-2 block font-bold",
           onDark ? "text-white" : "text-navy-900",
@@ -31,7 +35,7 @@ export function ProblemSearch({
       </label>
       <div className="flex gap-2">
         <input
-          id="busca-problema"
+          id={inputId}
           name="q"
           type="search"
           defaultValue={defaultValue}

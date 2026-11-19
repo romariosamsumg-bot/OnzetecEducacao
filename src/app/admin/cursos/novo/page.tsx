@@ -18,7 +18,7 @@ export default async function NovoCurso() {
     <div className="space-y-4">
       <PageHeader title="Novo curso" back={{ href: "/admin/cursos", label: "Cursos" }} description="Depois de salvar, você poderá adicionar módulos e aulas." />
       <Card className="p-5">
-        <ActionForm action={saveCourse} submitLabel="Salvar curso">
+        <ActionForm scope="curso-novo" action={saveCourse} submitLabel="Salvar curso">
           <CourseFields
             categories={categories}
             v={{ id: null, title: "", slug: "", summary: "", description: "", categoryId: null, status: "draft", publishedAtInput: "", level: "iniciante", appName: "", osName: "Android", versionRange: "", lastReviewedAt: new Date().toISOString().slice(0, 10), editorialStatus: "current", coverImageUrl: null }}

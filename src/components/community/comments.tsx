@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { BadgeCheck, Flag, MessageSquareReply, Pencil, ShieldAlert, Trash2 } from "lucide-react";
 import { Button, cn } from "@/components/ui/button";
 import { Alert } from "@/components/ui/primitives";
@@ -84,18 +84,17 @@ export function CommentsSection({
 }
 
 function CommentForm({ contentId, parentId, onDone }: { contentId: string; parentId?: string; onDone?: () => void }) {
-  const [state, action, pending] = useActionState<CommentFormState, FormData>(postComment, {});
   const [text, setText] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
-  const id = parentId ? `resposta-${parentId}` : "novo-comentario";
-
-  useEffect(() => {
-    if (state.ok && state.nonce) {
+  const [state, action, pending] = useActionState<CommentFormState, FormData>(async (prev, fd) => {
+    const r = await postComment(prev, fd);
+    if (r.ok) {
       setText("");
-      formRef.current?.reset();
       onDone?.();
     }
-  }, [state.ok, state.nonce, onDone]);
+    return r;
+  }, {});
+  const id = parentId ? `resposta-${parentId}` : `novo-comentario-${contentId}`;
 
   return (
     <form ref={formRef} action={action} className="space-y-3 rounded-[var(--radius-card)] border border-line bg-white p-4">

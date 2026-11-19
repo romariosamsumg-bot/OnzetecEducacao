@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Onzetec Educação
 
-## Getting Started
+Plataforma de assinatura para ensinar pessoas — com atenção especial ao público 50+ — a usar o celular Android, aplicativos e serviços digitais com autonomia e segurança.
 
-First, run the development server:
+PWA *mobile-first* em **Next.js 16 + React 19 + TypeScript**, **PostgreSQL (Supabase) com RLS**, **Supabase Auth**, **Cloudflare Stream** (vídeo) e **Mercado Pago** (pagamentos).
+
+> **Situação atual:** primeira versão funcional com dados de demonstração claramente identificados. Pagamentos, vídeo em produção e autenticação Supabase estão **implementados no código, mas ainda não testados contra os serviços reais** (dependem de credenciais). Veja [docs/06-relatorio.md](docs/06-relatorio.md).
+
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [01 — Avaliação de produto](docs/01-avaliacao-produto.md) | Visão, personas, jornadas, mapa, MVP, riscos, critérios de lançamento |
+| [02 — Arquitetura](docs/02-arquitetura.md) | Stack, modelo de dados, segurança, LGPD, pagamentos, vídeo, pontos jurídicos |
+| [03 — Design System](docs/03-design-system.md) | Tokens, tipografia, componentes, regras de acessibilidade |
+| [04 — Serviços e custos](docs/04-servicos-e-custos.md) | Serviços externos, custos fixos e variáveis |
+| [05 — Publicação](docs/05-publicacao.md) | Passo a passo para colocar no ar |
+| [06 — Relatório](docs/06-relatorio.md) | O que foi implementado, testado e o que está pendente |
+
+## Rodar localmente
+
+Pré-requisitos: Node.js 20.9+, PostgreSQL 15+ (com `unaccent` e `pg_trgm`), ffmpeg (opcional, para recriar vídeos de demonstração).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local          # ajuste DATABASE_URL e gere SESSION_SECRET
+
+# Banco local (uma vez, como superusuário): cria o usuário e os papéis do Supabase
+sudo -u postgres psql -f db/local/setup-roles.sql
+sudo -u postgres createdb -O onzetec onzetec
+
+npm run db:migrate:local             # shim do Supabase + migrações
+npm run db:seed:dev                  # conteúdo de demonstração + contas de teste
+npm run dev                          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Contas de desenvolvimento (login sem senha, só com `AUTH_MODE=dev`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| E-mail | Perfil |
+|---|---|
+| `admin@onzetec.local` | Administrador (painel em `/admin`) |
+| `assinante@onzetec.local` | Assinante com acesso de cortesia |
+| `visitante@onzetec.local` | Conta gratuita |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Testes
 
-## Learn More
+```bash
+npm test            # unidade + banco (RLS, comunidade, fluxo comercial) — usa o banco onzetec_test
+npm run test:e2e    # Playwright em build de produção, tela de 360 px, com auditoria axe — banco onzetec_e2e
+npm run test:all    # lint + tipos + todos os testes
+```
 
-To learn more about Next.js, take a look at the following resources:
+Bancos de teste: `createdb -O onzetec onzetec_test` e `createdb -O onzetec onzetec_e2e` (são recriados a cada execução).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estrutura
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+supabase/migrations/   Migrações SQL versionadas (esquema, RLS, funções)
+db/local/              Shim do Supabase para PostgreSQL comum (só local/CI)
+scripts/               Migração, seed de demonstração, conceder admin, mídia demo
+src/app/(site)/        Páginas públicas e do assinante
+src/app/admin/         Painel administrativo
+src/app/api/           Webhook, reconciliação, downloads, exportação de dados
+src/components/        Design system (ui/) e componentes de domínio
+src/lib/               Acesso a dados, auth, billing, vídeo, storage, busca, SEO
+src/server/actions/    Server Actions (todas re-verificam a sessão no servidor)
+tests/                 unit/, db/, e2e/
+```

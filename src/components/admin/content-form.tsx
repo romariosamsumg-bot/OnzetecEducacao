@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox, SelectField, TextArea, TextField, type FormState } from "@/components/ui/form";
+import { Checkbox, FieldScopeProvider, SelectField, TextArea, TextField, type FormState } from "@/components/ui/form";
 import { Alert, Card } from "@/components/ui/primitives";
 import { saveContent } from "@/server/actions/admin/content";
 import type { ArticleBlock, ContentType, GuideStep } from "@/lib/content/types";
@@ -41,6 +41,13 @@ export type ContentFormData = {
 };
 
 type Option = { id: string; name: string };
+
+const fieldLabels: Record<string, string> = {
+  title: "Título", slug: "Endereço", summary: "Resumo", categoryId: "Categoria", courseId: "Curso", moduleId: "Módulo",
+  position: "Ordem", access: "Acesso", status: "Situação", durationSeconds: "Duração", level: "Nível", appName: "Aplicativo",
+  osName: "Sistema", versionRange: "Versões", lastReviewedAt: "Última revisão", editorialStatus: "Situação editorial",
+  publishedAt: "Data de publicação", coverImageUrl: "Capa",
+};
 type CourseOption = { id: string; title: string; modules: { id: string; title: string }[] };
 
 export function ContentForm({ data, categories, courses }: { data: ContentFormData; categories: Option[]; courses: CourseOption[] }) {
@@ -56,11 +63,19 @@ export function ContentForm({ data, categories, courses }: { data: ContentFormDa
   const isVideo = data.type === "video" || data.type === "short";
 
   return (
+    <FieldScopeProvider scope={`conteudo-${data.type}-${data.id ?? "novo"}`}>
     <form action={action} className="space-y-6" noValidate>
       <input type="hidden" name="id" value={data.id ?? ""} />
       <input type="hidden" name="type" value={data.type} />
       <input type="hidden" name="coverImageUrl" value={cover ?? ""} />
       {state.message ? <Alert tone={state.ok ? "success" : "error"} live>{state.message}</Alert> : null}
+      {Object.keys(e).length > 0 ? (
+        <Alert tone="error" title="Corrija os campos abaixo">
+          <ul className="list-disc pl-5">
+            {Object.entries(e).map(([k, v]) => (v?.length ? <li key={k}><strong>{fieldLabels[k] ?? k}:</strong> {v[0]}</li> : null))}
+          </ul>
+        </Alert>
+      ) : null}
 
       <Card className="space-y-5 p-5">
         <h2 className="text-[1.2rem] font-bold text-navy-900">{contentTypeLabel[data.type]}: informações principais</h2>
@@ -165,7 +180,7 @@ export function ContentForm({ data, categories, courses }: { data: ContentFormDa
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Data da última revisão" name="lastReviewedAt" type="date" defaultValue={data.lastReviewedAt} optional />
-          <SelectField label="Situação" name="editorialStatus" defaultValue={data.editorialStatus}>
+          <SelectField label="Situação editorial" name="editorialStatus" defaultValue={data.editorialStatus}>
             <option value="current">Atualizado</option>
             <option value="review_soon">Revisar em breve</option>
             <option value="outdated">Desatualizado</option>
@@ -204,5 +219,6 @@ export function ContentForm({ data, categories, courses }: { data: ContentFormDa
         <Button type="submit" size="lg" loading={pending}>Salvar</Button>
       </div>
     </form>
+    </FieldScopeProvider>
   );
 }
