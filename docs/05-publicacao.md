@@ -8,10 +8,9 @@ Cada etapa que envolve conta, credencial ou cobrança é feita **pelo proprietá
 ## 1. Supabase (banco, login e arquivos) — plano Free
 
 1. Crie um projeto na região **South America (São Paulo)**. Anote a senha do banco.
-2. Aplique as migrações. Em **Project Settings › Database › Connection string**, copie a conexão **Session pooler** (porta 5432) e rode no seu computador:
-   `DATABASE_URL="<conexão>" npm run db:migrate`
-   (ou `npx supabase link` + `npx supabase db push`).
-3. Conteúdo inicial: `DATABASE_URL="<conexão>" npm run db:seed` — categorias, sinônimos de busca e planos **sem preço**. Também cria conteúdos de **demonstração**: substitua-os antes do lançamento.
+2. Prepare o banco **sem instalar nada**: abra **SQL Editor › New query**, cole todo o conteúdo do arquivo [`db/supabase-setup.sql`](../db/supabase-setup.sql) e clique em **Run**. Ele cria tabelas, regras de segurança, categorias, sinônimos de busca e os planos (sem preço). Não cria conteúdos de demonstração.
+   *(Alternativa para desenvolvedores: `DATABASE_URL="<Session pooler>" npm run db:migrate`.)*
+3. Os conteúdos reais você cria pelo painel da Onzetec depois de publicado.
 4. **Authentication › Sign In / Providers › Email:** confirmação de e-mail obrigatória.
 5. **Authentication › Email Templates** (traduza para português):
    - Confirmação de cadastro — link: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
@@ -20,8 +19,11 @@ Cada etapa que envolve conta, credencial ou cobrança é feita **pelo proprietá
 6. **Authentication › URL Configuration:** Site URL = seu domínio; Redirect URLs = `https://SEU_DOMINIO/auth/confirm`.
 7. **Storage:** crie o bucket `public-media` (**público**) e o bucket `private-files` (**privado**).
 8. **Project Settings › API / Data API:** retire `public` dos esquemas expostos (o site não usa essa API).
-9. Crie sua conta pelo site e torne-a administradora:
-   `DATABASE_URL="<conexão>" npm run admin:grant -- seu@email.com`
+9. Depois de publicar o site (etapa 5), crie sua conta em `/cadastro`, confirme o e-mail e, no **SQL Editor**, rode (com o seu e-mail):
+   ```sql
+   update public.profiles set role = 'admin'
+   where id = (select id from auth.users where email = 'seu@email.com');
+   ```
 
 ## 2. Resend (e-mails) — plano Free
 

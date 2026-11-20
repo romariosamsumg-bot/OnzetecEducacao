@@ -16,7 +16,8 @@
     "media:demo": "bash scripts/generate-demo-media.sh",
     "test": "vitest run",
     "test:e2e": "playwright test --trace off",
-    "test:all": "npm run lint && npm run typecheck && npm test && npm run test:e2e"
+    "test:all": "npm run lint && npm run typecheck && npm test && npm run test:e2e",
+    "db:setup-sql": "tsx scripts/build-setup-sql.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
