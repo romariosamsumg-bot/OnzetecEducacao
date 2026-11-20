@@ -10,6 +10,7 @@ import { ImageUploader } from "./editors";
 const fieldNames: Record<string, string> = {
   title: "Título", slug: "Endereço", name: "Nome", price: "Preço", email: "E-mail", days: "Dias",
   publishedAt: "Data de publicação", author: "Autor", file: "Arquivo", sampleUrl: "Amostra", description: "Descrição",
+  storagePath: "Caminho do arquivo",
 };
 
 /** Formulário genérico do painel: mostra mensagens e um resumo dos erros por campo. */

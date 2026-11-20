@@ -229,6 +229,14 @@ export async function saveBook(_prev: FormState, fd: FormData): Promise<FormStat
   } catch (err) {
     return { ok: false, errors: { file: [err instanceof Error ? err.message : "Arquivo inválido."] } };
   }
+  // Arquivos grandes: enviados direto ao bucket privado (painel do Supabase) e registrados pelo caminho.
+  const manualPath = String(fd.get("storagePath") ?? "").trim();
+  if (!storagePath && manualPath) {
+    if (!/^books\/[A-Za-z0-9/_.-]+\.(pdf|epub)$/.test(manualPath) || manualPath.includes("..")) {
+      return { ok: false, errors: { storagePath: ["Use um caminho como books/meu-livro.pdf (somente letras, números, -, _ e /)."] } };
+    }
+    storagePath = manualPath;
+  }
   const publishedAt = v.status === "published" ? (parseBrasiliaDateTime(fd.get("publishedAt")) ?? new Date()) : parseBrasiliaDateTime(fd.get("publishedAt"));
   let id: string;
   try {

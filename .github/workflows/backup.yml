@@ -1,0 +1,59 @@
+# Backup diário do banco, criptografado com a chave PÚBLICA "age" do proprietário.
+# O arquivo fica 30 dias como "artifact" desta execução; só a chave privada (guardada
+# fora da internet) consegue abri-lo. Restauração: docs/05-publicacao.md § Backup.
+# Configuração: Settings > Secrets and variables > Actions
+#   Segredo   BACKUP_DATABASE_URL   conexão do Supabase (Session pooler, porta 5432)
+#   Variável  BACKUP_AGE_RECIPIENT  chave pública age (age1...)
+#   Variável  PG_MAJOR              versão do PostgreSQL do projeto (padrão 17)
+name: Backup diário do banco
+
+on:
+  schedule:
+    - cron: "41 5 * * *" # 02:41 no horário de Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar configuração
+        id: cfg
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$BACKUP_AGE_RECIPIENT" ]; then
+            echo "Backup não configurado — nada a fazer."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar age
+        if: steps.cfg.outputs.skip != 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Gerar backup criptografado
+        if: steps.cfg.outputs.skip != 'true'
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+          PG_DOCKER_IMAGE: postgres:${{ vars.PG_MAJOR || '17' }}
+        run: bash scripts/backup-db.sh backup
+
+      - name: Guardar backup (30 dias)
+        if: steps.cfg.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-onzetec-${{ github.run_id }}
+          path: backup/*.age
+          retention-days: 30
+          if-no-files-found: error

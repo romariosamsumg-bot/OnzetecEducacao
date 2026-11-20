@@ -2,6 +2,7 @@ import "server-only";
 import { createPrivateKey, createSign, type JsonWebKey } from "node:crypto";
 import { env } from "@/lib/env";
 import type { Caption, VideoAsset } from "@/lib/content/types";
+import { bunnyPlayback } from "./bunny";
 
 /**
  * Adaptador de vídeo. O restante do sistema só conhece `getPlayback()`.
@@ -25,6 +26,10 @@ export function getPlayback(asset: VideoAsset | null, viewerId: string | null): 
   switch (asset.provider) {
     case "file":
       return fileDemoPlayback(asset);
+    case "bunny_stream": {
+      const p = bunnyPlayback(asset.providerAssetId, asset.captions ?? []);
+      return p ? { ...p, poster: asset.posterUrl ?? p.poster, type: "application/x-mpegURL", provider: "bunny_stream" } : null;
+    }
     case "cloudflare_stream":
       return cloudflarePlayback(asset, viewerId);
     case "mux":

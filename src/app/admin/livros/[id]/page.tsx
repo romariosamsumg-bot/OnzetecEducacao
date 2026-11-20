@@ -21,7 +21,7 @@ export default async function EditarLivro({ params, searchParams }: Props) {
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const sp = await searchParams;
   const [b] = await asUser(admin.id, (db) => db<Record<string, never>[]>`
-    select b.*, exists (select 1 from public.book_files f where f.book_id = b.id) as has_file from public.books b where b.id = ${id}`);
+    select b.*, f.storage_path, (f.book_id is not null) as has_file from public.books b left join public.book_files f on f.book_id = b.id where b.id = ${id}`);
   if (!b) notFound();
   const r = b as unknown as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   return (
@@ -33,7 +33,7 @@ export default async function EditarLivro({ params, searchParams }: Props) {
           <BookFields v={{
             id: r.id, title: r.title, slug: r.slug, author: r.author, synopsis: r.synopsis, toc: r.tableOfContents ?? [], format: r.format,
             pages: r.pages, price: centsToInput(r.priceCents), status: r.status, publishedAtInput: toBrasiliaInput(r.publishedAt),
-            includedInSubscription: r.includedInSubscription, coverImageUrl: r.coverImageUrl, sampleUrl: r.sampleUrl ?? "", hasFile: r.hasFile,
+            includedInSubscription: r.includedInSubscription, coverImageUrl: r.coverImageUrl, sampleUrl: r.sampleUrl ?? "", hasFile: r.hasFile, storagePath: r.storagePath ?? "",
           }} />
         </ActionForm>
       </Card>

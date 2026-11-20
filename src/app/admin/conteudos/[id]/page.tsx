@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Alert, Badge, PageHeader } from "@/components/ui/primitives";
 import { editorOptions, loadContentForEdit } from "@/lib/admin/queries";
 import { requireAdmin } from "@/lib/auth/viewer";
+import { env } from "@/lib/env";
 import { contentTypeLabel } from "@/lib/content/types";
 import { deleteContent } from "@/server/actions/admin/content";
 
@@ -36,7 +37,7 @@ export default async function EditarConteudo({ params, searchParams }: Props) {
         }
       />
       {sp.salvo ? <Alert tone="success" live>Alterações salvas.</Alert> : null}
-      <ContentForm data={data} categories={opts.categories} courses={opts.courses} />
+      <ContentForm data={data} categories={opts.categories} courses={opts.courses} videoProvider={env().VIDEO_PROVIDER} />
       <form action={deleteContent} className="rounded-[var(--radius-card)] border border-[#f3c1bc] bg-white p-5">
         <input type="hidden" name="id" value={data.id!} />
         <h2 className="font-bold text-danger-700">Remover conteúdo</h2>

@@ -64,7 +64,7 @@ export type Material = { label: string; url: string };
 
 export type VideoAsset = {
   id: string;
-  provider: "cloudflare_stream" | "mux" | "file";
+  provider: "bunny_stream" | "cloudflare_stream" | "mux" | "file";
   providerAssetId: string;
   durationSeconds: number | null;
   posterUrl: string | null;

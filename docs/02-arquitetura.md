@@ -10,9 +10,10 @@
 | Acesso a dados | Driver `postgres` com SQL parametrizado | Sem ORM: SQL explícito, revisável e testável; pool compatível com Supavisor (`prepare: false`) | Drizzle (adicionaria camada sem ganho real aqui) |
 | Autenticação | Supabase Auth via `@supabase/ssr` (e-mail + senha; código de 6 dígitos por e-mail) | Serviço gerenciado: hashing, limites, recuperação de senha, MFA futuro | Better Auth (mais controle, mais responsabilidade de segurança) |
 | Arquivos | Supabase Storage (bucket público para imagens, privado para livros) | Mesmo fornecedor; URLs assinadas de 5 min para livros | Cloudflare R2 |
-| Vídeo | Cloudflare Stream (HLS adaptativo + URLs assinadas RS256) | Preço por minuto, sem cobrança de banda, assinatura local do token | Mux (interface pronta em `src/lib/video`, integração não implementada) |
+| Vídeo | **Bunny Stream** (HLS adaptativo + links assinados HMAC-SHA256 por pasta do vídeo) | Menor custo por GB entregue, upload TUS retomável direto do navegador | Cloudflare Stream (também implementado, `VIDEO_PROVIDER=cloudflare_stream`); Mux (interface prevista, não implementada) |
 | Pagamentos | Mercado Pago: Assinaturas (`/preapproval`) e Checkout Pro (livros) | Marca conhecida do público; Pix para compras avulsas | Stripe, Asaas, Pagar.me |
-| Hospedagem | Vercel (ou qualquer Node 20+) | Deploy simples, cron nativo | Render, Fly.io, VPS |
+| Hospedagem | **Netlify Free** (`netlify.toml`) | Gratuito com uso comercial permitido; suporte oficial ao Next.js 16 | Vercel Pro (US$ 20/mês), qualquer host Node 20+ |
+| Tarefas e backup | **GitHub Actions** | Reconciliação de pagamentos a cada hora e backup diário criptografado (age), sem custo | Agendador da hospedagem |
 
 **Substituição de provedores:** cada integração está atrás de uma interface — `BillingProvider` (`src/lib/billing/types.ts`), `getPlayback()` (`src/lib/video`), `uploadPublicImage/signedPrivateUrl` (`src/lib/storage`), `getSession()` (`src/lib/auth/session.ts`). Telas e regras de acesso não conhecem o fornecedor.
 
@@ -93,8 +94,9 @@ Decisões principais:
 
 ## Vídeo
 
-- Produção: Cloudflare Stream com `requireSignedURLs` para aulas pagas. A página da aula só gera o token **depois** que o RLS entregou o `video_asset` (ou seja, a pessoa tem direito). Token RS256 assinado localmente, válido por 3 h.
-- Envio pelo painel: *direct creator upload* (o arquivo vai do navegador direto ao Cloudflare).
+- Produção: **Bunny Stream** com *Token Authentication* ativado na Pull Zone. A página da aula só gera o link **depois** que o RLS entregou o `video_asset` (ou seja, a pessoa tem direito). O link usa o formato de diretório (`/bcdn_token=…&token_path=/{id}/&expires=…/{id}/playlist.m3u8`), que autoriza a playlist, os segmentos, a miniatura e as legendas daquele vídeo por 3 h — conforme o SDK oficial `BunnyWay/BunnyCDN.TokenAuthentication`.
+- Envio pelo painel: o servidor cria o vídeo na Bunny e assina o upload (SHA256 de biblioteca + chave + validade + id); o navegador envia o arquivo por **TUS** (retomável) direto à Bunny. A chave de API nunca sai do servidor.
+- Alternativa implementada: Cloudflare Stream (token RS256 assinado localmente).
 - Reprodutor próprio (`src/components/player/video-player.tsx`): sem reprodução automática, botões com texto, velocidade, legendas, tela cheia, ±10 s, retomada, gravação de progresso a cada 15 s/pausa/saída, conclusão automática ao alcançar 90% (nunca ao abrir) e botão "Marcar como concluído".
 - `provider = 'file'` só serve arquivos em `/demo/` com `DEMO_MEDIA_ENABLED=true`: **não é solução para conteúdo pago**.
 
@@ -123,6 +125,7 @@ Decisões principais:
 
 - Minimização: cadastro pede só nome/apelido, e-mail e senha; nenhum dado de cartão passa pela plataforma.
 - Transparência: política de privacidade (minuta), cookies apenas essenciais.
+- Backups: diários, criptografados com chave pública `age` antes de sair do GitHub Actions; só a chave privada do proprietário (fora da internet) abre o arquivo. Restauração testada com `scripts/restore-db.sh`.
 - Direitos do titular: **baixar meus dados** (`/api/conta/exportar`, JSON) e **pedido de exclusão** com conclusão pelo painel (remove a conta no Supabase Auth e, em cascata, perfil, progresso, salvos e comentários).
 - Busca sem resultado é registrada **sem identificar a pessoa**.
 - Registro administrativo (`admin_audit_log`) sem dados sensíveis.
@@ -134,7 +137,7 @@ Decisões principais:
 3. Decreto 7.962/2013 (comércio eletrônico): identificação do fornecedor (razão social, CNPJ, endereço), atendimento.
 4. Regras de renovação automática e cancelamento (informação prévia clara — já presente na interface).
 5. Prazos de retenção fiscal de registros de pagamento × pedido de exclusão.
-6. Nomeação do encarregado (DPO) e lista de operadores de dados (Supabase, Vercel, Cloudflare, Mercado Pago, e-mail).
+6. Nomeação do encarregado (DPO) e lista de operadores de dados (Supabase, Netlify, Bunny.net, Resend, GitHub, Mercado Pago).
 7. Uso de marcas de terceiros (WhatsApp, Instagram etc.) em títulos e materiais.
 
 ## Preparação para o roadmap (sem implementação prematura)

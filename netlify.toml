@@ -1,0 +1,11 @@
+# Hospedagem na Netlify (plano gratuito permite uso comercial).
+# O suporte a Next.js 16 é automático (adaptador oficial da Netlify).
+# Variáveis de ambiente: configure no painel da Netlify (ver docs/05-publicacao.md).
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Telemetria do Next.js desativada no build
+  NEXT_TELEMETRY_DISABLED = "1"

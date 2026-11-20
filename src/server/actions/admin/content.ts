@@ -9,6 +9,7 @@ import { lines, parseBrasiliaDateTime, parseMaterials, slugify, isSafeUrl } from
 import { requireAdmin } from "@/lib/auth/viewer";
 import { asUser, json, pgCode } from "@/lib/db";
 import { uploadPublicImage } from "@/lib/storage";
+import { createBunnyUpload, fetchBunnyVideo, isBunnyVideoId } from "@/lib/video/bunny";
 import { createStreamDirectUpload, fetchStreamVideo } from "@/lib/video/cloudflare-admin";
 
 const uuidOrEmpty = z.union([z.string().uuid(), z.literal("")]).transform((v) => v || null);
@@ -140,7 +141,10 @@ export async function saveContent(_prev: FormState, fd: FormData): Promise<FormS
       let durationSeconds = v.durationSeconds;
       let videoId: string | null = null;
       if ((v.type === "video" || v.type === "short") && videoProvider && videoAssetId) {
-        if (!["cloudflare_stream", "file"].includes(videoProvider)) throw new Error("Provedor de vídeo inválido.");
+        if (!["bunny_stream", "cloudflare_stream", "file"].includes(videoProvider)) throw new Error("Provedor de vídeo inválido.");
+        if (videoProvider === "bunny_stream" && !isBunnyVideoId(videoAssetId)) {
+          throw new Error("Identificador do vídeo na Bunny inválido (formato 00000000-0000-0000-0000-000000000000).");
+        }
         if (videoProvider === "file" && !videoAssetId.startsWith("/demo/")) {
           throw new Error("Arquivos locais só são aceitos para demonstração (/demo/...). Use o Cloudflare Stream.");
         }
@@ -152,7 +156,16 @@ export async function saveContent(_prev: FormState, fd: FormData): Promise<FormS
             durationSeconds = durationSeconds ?? (info.duration ? Math.round(info.duration) : null);
           }
         }
-        const captions = captionUrl && isSafeUrl(captionUrl) ? [{ lang: "pt-BR", label: "Português", url: captionUrl }] : [];
+        let captions = captionUrl && isSafeUrl(captionUrl) ? [{ lang: "pt-BR", label: "Português", url: captionUrl }] : [];
+        if (videoProvider === "bunny_stream") {
+          const info = await fetchBunnyVideo(videoAssetId).catch(() => null);
+          if (info) {
+            status = info.ready ? "ready" : "processing";
+            durationSeconds = durationSeconds ?? info.durationSeconds;
+            // Legendas enviadas no painel da Bunny (o link assinado é gerado na reprodução)
+            if (info.captions.length) captions = info.captions;
+          }
+        }
         const [va] = await db<{ id: string }[]>`
           insert into public.video_assets (provider, provider_asset_id, status, duration_seconds, poster_url, captions)
           values (${videoProvider}, ${videoAssetId}, ${status}, ${durationSeconds}, ${posterUrl}, ${json(captions)})
@@ -263,13 +276,24 @@ export async function uploadImage(fd: FormData): Promise<{ ok: true; url: string
   }
 }
 
-/** Link de envio direto do navegador para o Cloudflare Stream (o vídeo não passa pelo nosso servidor). */
-export async function createVideoUpload(premium: boolean) {
+export type VideoUploadTicket =
+  | { ok: true; provider: "cloudflare_stream"; uploadURL: string; uid: string }
+  | { ok: true; provider: "bunny_stream"; videoId: string; libraryId: string; expires: number; signature: string }
+  | { ok: false; message: string };
+
+/**
+ * Prepara o envio direto do navegador para o provedor de vídeo (o arquivo não passa
+ * pelo nosso servidor). Somente administradores.
+ */
+export async function createVideoUpload(opts: { provider: "bunny_stream" | "cloudflare_stream"; premium: boolean; title: string }): Promise<VideoUploadTicket> {
   await requireAdmin();
   try {
-    return { ok: true as const, ...(await createStreamDirectUpload({ requireSignedURLs: premium })) };
+    if (opts.provider === "bunny_stream") {
+      return { ok: true, provider: "bunny_stream", ...(await createBunnyUpload(String(opts.title ?? ""))) };
+    }
+    return { ok: true, provider: "cloudflare_stream", ...(await createStreamDirectUpload({ requireSignedURLs: !!opts.premium })) };
   } catch (err) {
-    return { ok: false as const, message: err instanceof Error ? err.message : "Falha ao preparar envio." };
+    return { ok: false, message: err instanceof Error ? err.message : "Falha ao preparar envio." };
   }
 }
 

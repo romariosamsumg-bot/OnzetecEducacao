@@ -1,57 +1,126 @@
-# Publicação — passo a passo
+# Publicação — passo a passo (configuração de custo mínimo)
 
-> Cada etapa que envolve contratação, credenciais ou cobrança real exige decisão do proprietário. Nada disso foi feito automaticamente.
+**Serviços:** Supabase Free + Netlify Free + Bunny Stream + Resend Free + GitHub Actions + Mercado Pago.
+Cada etapa que envolve conta, credencial ou cobrança é feita **pelo proprietário**. Tempo estimado: uma tarde.
 
-## 1. Supabase (banco, autenticação, arquivos)
+> Guarde todas as chaves num gerenciador de senhas (ex.: Bitwarden). Nunca as envie por e-mail, WhatsApp ou chat.
 
-1. Crie uma organização no plano **Pro** e um projeto na região **São Paulo (sa-east-1)**.
-2. Aplique as migrações: `npx supabase link --project-ref <ref>` e `npx supabase db push`
-   (ou `DATABASE_URL=<conexão direta> npm run db:migrate` — **sem** `--local`).
-3. Conteúdo inicial: `DATABASE_URL=... npm run db:seed` cria categorias, sinônimos e planos **sem preço**. Os conteúdos de demonstração também são criados (marcados como "Demonstração") — remova-os ou substitua-os antes do lançamento.
-4. **Authentication › Providers:** habilite e-mail com confirmação obrigatória. **Authentication › Email Templates:** traduza para português; no modelo "Magic Link/OTP" inclua `{{ .Token }}` (código de 6 dígitos); nos modelos de confirmação e recuperação use o link
-   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` (recuperação: `type=recovery&next=/conta/nova-senha`).
-5. **Authentication › URL Configuration:** Site URL = domínio final; Redirect URLs = `https://SEU_DOMINIO/auth/confirm`.
-6. **Authentication › SMTP:** configure um provedor de e-mail transacional com domínio próprio (SPF/DKIM).
-7. **Storage:** crie o bucket `public-media` (público) e o bucket `private-files` (**privado**).
-8. **API settings:** retire `public` dos esquemas expostos (o app não usa a Data API).
-9. Crie sua conta pelo site e torne-a administradora: `DATABASE_URL=... npm run admin:grant -- seu@email.com`.
-10. **Database › Backups:** confira os backups diários; faça um teste de restauração antes do lançamento.
+## 1. Supabase (banco, login e arquivos) — plano Free
 
-## 2. Cloudflare Stream (vídeos)
+1. Crie um projeto na região **South America (São Paulo)**. Anote a senha do banco.
+2. Aplique as migrações. Em **Project Settings › Database › Connection string**, copie a conexão **Session pooler** (porta 5432) e rode no seu computador:
+   `DATABASE_URL="<conexão>" npm run db:migrate`
+   (ou `npx supabase link` + `npx supabase db push`).
+3. Conteúdo inicial: `DATABASE_URL="<conexão>" npm run db:seed` — categorias, sinônimos de busca e planos **sem preço**. Também cria conteúdos de **demonstração**: substitua-os antes do lançamento.
+4. **Authentication › Sign In / Providers › Email:** confirmação de e-mail obrigatória.
+5. **Authentication › Email Templates** (traduza para português):
+   - Confirmação de cadastro — link: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
+   - Recuperação de senha — link: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/conta/nova-senha`
+   - Magic Link / OTP — inclua o código: `{{ .Token }}`
+6. **Authentication › URL Configuration:** Site URL = seu domínio; Redirect URLs = `https://SEU_DOMINIO/auth/confirm`.
+7. **Storage:** crie o bucket `public-media` (**público**) e o bucket `private-files` (**privado**).
+8. **Project Settings › API / Data API:** retire `public` dos esquemas expostos (o site não usa essa API).
+9. Crie sua conta pelo site e torne-a administradora:
+   `DATABASE_URL="<conexão>" npm run admin:grant -- seu@email.com`
 
-1. Ative o Stream na conta Cloudflare e compre o primeiro bloco de minutos.
-2. Crie um token de API com permissão **Stream: Edit** → `CLOUDFLARE_STREAM_API_TOKEN`; anote o Account ID.
-3. Crie uma chave de assinatura: `POST /accounts/{id}/stream/keys` → `id` em `CLOUDFLARE_STREAM_SIGNING_KEY_ID` e o campo `jwk` (já em base64) em `CLOUDFLARE_STREAM_SIGNING_KEY_JWK`.
-4. `CLOUDFLARE_STREAM_CUSTOMER_CODE` = parte `XXXX` de `customer-XXXX.cloudflarestream.com`.
-5. Envie um vídeo de teste pelo painel (Conteúdos › Videoaula › Enviar arquivo de vídeo), marque como pago e confirme: (a) assinante assiste; (b) visitante não recebe o vídeo; (c) a URL copiada para outro navegador expira.
+## 2. Resend (e-mails) — plano Free
 
-## 3. Mercado Pago (pagamentos)
+1. Crie a conta e **verifique seu domínio** (registros DNS SPF e DKIM no Registro.br).
+2. Crie uma API key.
+3. No Supabase: **Authentication › SMTP Settings** → ativar SMTP personalizado:
+   host `smtp.resend.com`, porta `465`, usuário `resend`, senha = API key, remetente `nao-responda@seudominio.com.br`, nome "Onzetec Educação".
+   *(O SMTP padrão do Supabase envia poucos e-mails por hora e não serve para produção.)*
 
-1. Em **Suas integrações**, crie uma aplicação. Use primeiro as **credenciais de teste** e **usuários de teste** (vendedor e comprador).
-2. Configure o webhook em `https://SEU_DOMINIO/api/webhooks/mercadopago` com os eventos: *Pagamentos*, *Planos e assinaturas* (`subscription_preapproval`, `subscription_authorized_payment`). Copie a **assinatura secreta** → `MERCADOPAGO_WEBHOOK_SECRET`.
+## 3. Bunny Stream (vídeos)
+
+1. Crie a conta (pago por uso, mínimo US$ 1/mês) e uma **Video Library** chamada "Onzetec".
+2. Na biblioteca, aba **API**, anote:
+   - **Library ID** → `BUNNY_STREAM_LIBRARY_ID`
+   - **API Key** → `BUNNY_STREAM_API_KEY` (só no servidor; nunca no navegador)
+   - **CDN Hostname** (ex.: `vz-abc123.b-cdn.net`) → `BUNNY_STREAM_CDN_HOSTNAME`
+3. Proteção dos links: abra a **Pull Zone** da biblioteca (na aba API, "Pull Zone › Manage") → **Security › Token Authentication** → ativar. Copie a **URL Token Authentication Key** → `BUNNY_STREAM_TOKEN_KEY`.
+   A partir daí, nenhum vídeo, segmento ou miniatura abre sem um link assinado pelo site.
+4. Na mesma Pull Zone, confira se os cabeçalhos **CORS** estão ativos para `m3u8`, `ts`, `vtt` e `jpg` (necessário para o reprodutor no computador e para as legendas).
+5. **Legendas:** na Bunny, abra o vídeo › Subtitles › envie o arquivo `.vtt` em português (código `pt-BR`). Depois, salve de novo o conteúdo no painel da Onzetec para ele reconhecer a legenda.
+6. **Teste obrigatório:** no painel da Onzetec, crie uma videoaula "Somente assinantes", envie um vídeo curto (botão "Enviar arquivo de vídeo"), aguarde o processamento e confira:
+   - (a) a conta de assinante assiste, com legenda;
+   - (b) uma conta gratuita vê "exclusivo para assinantes" e não recebe o vídeo;
+   - (c) o endereço do vídeo copiado (ferramentas do navegador) para de funcionar depois de 3 horas.
+
+## 4. Mercado Pago (pagamentos)
+
+1. Em **Suas integrações**, crie uma aplicação. Comece com **credenciais e usuários de teste** (vendedor e comprador).
+2. **Webhooks:** URL `https://SEU_DOMINIO/api/webhooks/mercadopago`, eventos *Pagamentos* e *Planos e assinaturas*. Copie a **assinatura secreta** → `MERCADOPAGO_WEBHOOK_SECRET`.
 3. Variáveis: `BILLING_PROVIDER=mercadopago`, `MERCADOPAGO_ACCESS_TOKEN` (de teste), `MERCADOPAGO_TEST_PAYER_EMAIL` (comprador de teste).
-4. No painel da Onzetec, defina o preço dos planos e marque "Disponível para venda".
-5. **Roteiro de teste obrigatório (ambiente de testes):** assinatura aprovada → acesso liberado; cartão recusado → "Pagamento não aprovado"; cancelamento → acesso até o fim do período; compra de livro por Pix → download liberado; reembolso → acesso revogado; reenvio da mesma notificação → sem duplicidade.
-6. Só depois troque para as credenciais de produção e remova `MERCADOPAGO_TEST_PAYER_EMAIL`.
+4. No painel da Onzetec › Planos: defina os preços e marque "Disponível para venda".
+5. **Roteiro de teste (ambiente de testes):** assinatura aprovada → acesso liberado · cartão recusado → "Pagamento não aprovado" · cancelamento → acesso até o fim do período · livro por Pix → download liberado · reembolso → acesso revogado · reenvio da mesma notificação → sem duplicidade.
+6. Só então troque para as credenciais de produção e **apague** `MERCADOPAGO_TEST_PAYER_EMAIL`.
 
-## 4. Vercel (hospedagem)
+## 5. Netlify (hospedagem) — plano Free
 
-1. Importe o repositório; framework Next.js; Node 20+.
-2. Variáveis de ambiente de produção (ver `.env.example`):
-   `DATABASE_URL` (pooler do Supabase, porta 6543), `NEXT_PUBLIC_SITE_URL`, `SESSION_SECRET`, `AUTH_MODE=supabase`,
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STORAGE_PROVIDER=supabase`,
-   `DEMO_MEDIA_ENABLED=false`, variáveis do Cloudflare e do Mercado Pago, `CRON_SECRET`, `SUPPORT_EMAIL`.
-   **Nunca** defina `DEV_AUTH_ALLOW_PRODUCTION_BUILD` em produção.
-3. O `vercel.json` agenda a reconciliação de pagamentos a cada hora (`/api/cron/reconcile`); a Vercel envia o `CRON_SECRET` automaticamente.
-4. Limite de corpo de requisição das funções da Vercel (~4,5 MB): imagens até 4 MB funcionam pelo painel; **arquivos de livro maiores** devem ser enviados direto ao bucket privado do Supabase e o caminho registrado — melhoria listada no relatório.
-5. Domínio próprio com HTTPS (automático na Vercel).
+1. **Add new site › Import from Git** → escolha o repositório. As configurações de build vêm do `netlify.toml`.
+2. **Site configuration › Environment variables** (todas com escopo "Builds, Functions and Runtime"):
 
-## 5. Antes de abrir as vendas
+   | Variável | Valor |
+   |---|---|
+   | `DATABASE_URL` | conexão **Transaction pooler** do Supabase (porta 6543) |
+   | `NEXT_PUBLIC_SITE_URL` | `https://SEU_DOMINIO` |
+   | `SESSION_SECRET` | `openssl rand -hex 32` |
+   | `AUTH_MODE` | `supabase` |
+   | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Project Settings › API |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Project Settings › API (secreta) |
+   | `STORAGE_PROVIDER` | `supabase` |
+   | `DEMO_MEDIA_ENABLED` | `false` |
+   | `VIDEO_PROVIDER` | `bunny_stream` |
+   | `BUNNY_STREAM_*` | etapa 3 |
+   | `BILLING_PROVIDER`, `MERCADOPAGO_*` | etapa 4 |
+   | `CRON_SECRET` | `openssl rand -hex 24` |
+   | `SUPPORT_EMAIL` | seu e-mail de atendimento |
 
-- [ ] Revisão jurídica de termos, privacidade, cancelamento e reembolso (ver docs/02 § Jurídico).
+   **Nunca** defina `DEV_AUTH_ALLOW_PRODUCTION_BUILD` nem `AUTH_MODE=dev` em produção.
+3. **Domain management:** adicione o domínio do Registro.br (HTTPS automático).
+4. **Limite de envio:** pelo painel da Onzetec dá para enviar imagens de até 4 MB e livros de até ~5 MB. Livros maiores: envie em Supabase › Storage › `private-files` › pasta `books/` e informe o caminho (ex.: `books/guia.pdf`) no campo "caminho do arquivo" do livro.
+5. Acompanhe o consumo de créditos em **Usage**. Se chegar perto do fim do mês, considere o plano pago.
+
+## 6. GitHub Actions (reconciliação e backup) — gratuito
+
+Em **Settings › Secrets and variables › Actions** do repositório:
+
+| Tipo | Nome | Valor |
+|---|---|---|
+| Variable | `SITE_URL` | `https://SEU_DOMINIO` |
+| Secret | `CRON_SECRET` | o mesmo da Netlify |
+| Secret | `BACKUP_DATABASE_URL` | conexão **Session pooler** do Supabase (porta 5432) |
+| Variable | `BACKUP_AGE_RECIPIENT` | sua chave pública `age1…` (abaixo) |
+| Variable | `PG_MAJOR` | versão do PostgreSQL do projeto (Settings › Infrastructure; ex.: `17`) |
+
+**Chave do backup (uma vez, no seu computador):**
+1. Instale o `age` (Windows: `winget install FiloSottile.age`; macOS: `brew install age`; Linux: `apt install age`).
+2. `age-keygen -o onzetec-backup-chave.txt` — o comando mostra a chave pública (`age1…`): ela vai em `BACKUP_AGE_RECIPIENT`.
+3. Guarde o arquivo `onzetec-backup-chave.txt` **fora da internet** (pendrive + cópia no gerenciador de senhas). Sem ele, os backups não podem ser abertos — por ninguém.
+
+**Conferir:** em **Actions**, rode manualmente "Backup diário do banco" e "Reconciliação de pagamentos" (botão *Run workflow*). O backup aparece em *Artifacts* da execução e fica 30 dias.
+
+> O GitHub pausa tarefas agendadas após 60 dias sem nenhuma atividade no repositório (em repositórios públicos) e avisa por e-mail. Basta reativar em Actions.
+
+### Restaurar um backup (teste uma vez antes do lançamento)
+
+1. Baixe o arquivo `.tar.gz.age` em Actions › execução › Artifacts (vem dentro de um .zip).
+2. Crie um projeto Supabase **novo** (vazio) — não restaure por cima do projeto em uso.
+3. No seu computador (com `age` e o cliente do PostgreSQL instalados):
+   `TARGET_DATABASE_URL="<session pooler do projeto novo>" AGE_KEY_FILE=onzetec-backup-chave.txt bash scripts/restore-db.sh onzetec-AAAAMMDD.tar.gz.age`
+4. O script recria tabelas, dados, regras de segurança e contas, e mostra a contagem de contas, conteúdos e assinaturas.
+5. Aponte a Netlify para o projeto novo (variáveis do Supabase) e reconfigure as etapas 1.4–1.8 nele.
+
+**Atenção:** o backup cobre o **banco** (dados, contas e regras). Arquivos de imagens e livros do Storage não entram nele — guarde os originais no seu computador ou num drive.
+
+## 7. Antes de abrir as vendas
+
+- [ ] Revisão jurídica de termos, privacidade, cancelamento e reembolso (docs/02 § Jurídico).
 - [ ] Razão social, CNPJ e canal de atendimento publicados.
 - [ ] Conteúdos de demonstração removidos ou substituídos.
-- [ ] Logotipo oficial aplicado em `src/components/brand/logo.tsx` e ícones em `public/icons`.
-- [ ] Roteiro de testes do Mercado Pago concluído no ambiente de testes.
+- [ ] Logotipo oficial em `src/components/brand/logo.tsx` e ícones em `public/icons`.
+- [ ] Testes das etapas 3.6 (vídeo) e 4.5 (pagamentos) concluídos.
+- [ ] Backup gerado **e restaurado** uma vez (etapa 6).
 - [ ] Teste com TalkBack e com pessoas do público-alvo.
-- [ ] `npm run test:all` verde.
+- [ ] `npm run test:all` aprovado.

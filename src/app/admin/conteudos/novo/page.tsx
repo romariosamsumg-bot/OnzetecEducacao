@@ -3,6 +3,7 @@ import { ContentForm } from "@/components/admin/content-form";
 import { PageHeader } from "@/components/ui/primitives";
 import { editorOptions, emptyContent } from "@/lib/admin/queries";
 import { requireAdmin } from "@/lib/auth/viewer";
+import { env } from "@/lib/env";
 import { contentTypeLabel, type ContentType } from "@/lib/content/types";
 
 /** Painel privado: sempre renderizado na requisição (sem pré-render instantâneo). */
@@ -25,7 +26,7 @@ export default async function NovoConteudo({ searchParams }: Props) {
   return (
     <div className="space-y-4">
       <PageHeader title={`Novo: ${contentTypeLabel[type]}`} back={{ href: "/admin/conteudos", label: "Conteúdos" }} />
-      <ContentForm data={data} categories={opts.categories} courses={opts.courses} />
+      <ContentForm data={data} categories={opts.categories} courses={opts.courses} videoProvider={env().VIDEO_PROVIDER} />
     </div>
   );
 }

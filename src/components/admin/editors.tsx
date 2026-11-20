@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useRef, useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ImagePlus, Plus, Trash2, Upload } from "lucide-react";
 import { Button, cn } from "@/components/ui/button";
 import { Alert } from "@/components/ui/primitives";
@@ -213,38 +213,98 @@ export function BlocksEditor({ initial }: { initial: ArticleBlock[] }) {
 
 /* ------------------------ Envio de vídeo (Stream) ------------------------ */
 
-export function StreamUploader({ premium, onUploaded }: { premium: boolean; onUploaded: (uid: string) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
+/**
+ * Envio de vídeo direto do navegador para o provedor (o arquivo não passa pelo nosso servidor).
+ * Bunny Stream: upload TUS retomável (sobrevive a quedas de conexão) com assinatura gerada no servidor.
+ */
+export function VideoUploader({
+  provider,
+  premium,
+  title,
+  onUploaded,
+}: {
+  provider: "bunny_stream" | "cloudflare_stream";
+  premium: boolean;
+  title: string;
+  onUploaded: (id: string) => void;
+}) {
   const fileId = useId();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const providerName = provider === "bunny_stream" ? "Bunny Stream" : "Cloudflare Stream";
+
+  async function upload(file: File) {
+    setBusy(true);
+    setError(null);
+    setStatus("Preparando envio…");
+    const r = await createVideoUpload({ provider, premium, title: title || file.name });
+    if (!r.ok) {
+      setError(r.message);
+      setBusy(false);
+      return;
+    }
+    if (r.provider === "bunny_stream") {
+      const { Upload } = await import("tus-js-client");
+      await new Promise<void>((resolve) => {
+        const up = new Upload(file, {
+          endpoint: "https://video.bunnycdn.com/tusupload",
+          retryDelays: [0, 3000, 10000, 30000, 60000],
+          headers: {
+            AuthorizationSignature: r.signature,
+            AuthorizationExpire: String(r.expires),
+            VideoId: r.videoId,
+            LibraryId: r.libraryId,
+          },
+          metadata: { filetype: file.type, title: title || file.name },
+          onProgress: (sent, total) =>
+            setStatus(`Enviando para o ${providerName}: ${Math.floor((sent / total) * 100)}% — não feche esta página.`),
+          onError: () => {
+            setError("O envio falhou. Verifique a conexão e tente novamente.");
+            resolve();
+          },
+          onSuccess: () => {
+            onUploaded(r.videoId);
+            setStatus("Vídeo enviado. O processamento leva alguns minutos; salve o conteúdo normalmente.");
+            resolve();
+          },
+        });
+        up.start();
+      });
+    } else {
+      setStatus(`Enviando para o ${providerName}… não feche esta página.`);
+      const fd = new FormData();
+      fd.set("file", file);
+      const res = await fetch(r.uploadURL, { method: "POST", body: fd }).catch(() => null);
+      if (!res?.ok) setError("O envio falhou. Verifique a conexão e tente novamente.");
+      else {
+        onUploaded(r.uid);
+        setStatus("Vídeo enviado. O processamento leva alguns minutos; salve o conteúdo normalmente.");
+      }
+    }
+    setBusy(false);
+  }
+
   return (
     <div className="space-y-2">
-      <input ref={ref} type="file" accept="video/*" className="sr-only" id={fileId} onChange={async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setBusy(true);
-        setError(null);
-        setStatus("Preparando envio…");
-        const r = await createVideoUpload(premium);
-        if (!r.ok) {
-          setError(r.message);
-          setBusy(false);
-          return;
-        }
-        setStatus("Enviando o vídeo para o Cloudflare Stream… não feche esta página.");
-        const fd = new FormData();
-        fd.set("file", file);
-        const up = await fetch(r.uploadURL, { method: "POST", body: fd }).catch(() => null);
-        if (!up?.ok) setError("O envio falhou. Verifique a conexão e tente novamente.");
-        else {
-          onUploaded(r.uid);
-          setStatus("Vídeo enviado. O processamento leva alguns minutos; salve o conteúdo normalmente.");
-        }
-        setBusy(false);
-      }} />
-      <label htmlFor={fileId} className={cn("inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border-2 border-navy-900 px-4 font-semibold text-navy-900 hover:bg-navy-50", busy && "pointer-events-none opacity-60")}>
+      <input
+        type="file"
+        accept="video/*"
+        className="sr-only"
+        id={fileId}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void upload(file);
+          e.target.value = "";
+        }}
+      />
+      <label
+        htmlFor={fileId}
+        className={cn(
+          "inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[var(--radius-control)] border-2 border-navy-900 px-4 font-semibold text-navy-900 hover:bg-navy-50",
+          busy && "pointer-events-none opacity-60",
+        )}
+      >
         <Upload aria-hidden className="size-5" /> Enviar arquivo de vídeo
       </label>
       {status ? <p role="status" className="text-[0.95rem] text-ink-soft">{status}</p> : null}

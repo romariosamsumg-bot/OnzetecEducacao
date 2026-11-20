@@ -4,7 +4,7 @@ import { CoverField } from "./forms";
 export type BookValues = {
   id: string | null; title: string; slug: string; author: string; synopsis: string; toc: string[]; format: string;
   pages: number | null; price: string; status: string; publishedAtInput: string; includedInSubscription: boolean;
-  coverImageUrl: string | null; sampleUrl: string; hasFile: boolean;
+  coverImageUrl: string | null; sampleUrl: string; hasFile: boolean; storagePath: string;
 };
 
 export function BookFields({ v }: { v: BookValues }) {
@@ -41,7 +41,16 @@ export function BookFields({ v }: { v: BookValues }) {
         <label htmlFor={`arquivo-${v.id ?? "novo"}`} className="block font-semibold text-navy-900">Arquivo do livro (PDF ou EPUB)</label>
         <p className="text-[0.9rem] text-ink-muted">{v.hasFile ? "Já existe um arquivo. Envie outro apenas para substituir." : "Ainda não há arquivo."} Guardado em área privada; só quem tem direito recebe um link temporário.</p>
         <input id={`arquivo-${v.id ?? "novo"}`} name="file" type="file" accept="application/pdf,application/epub+zip" className="block min-h-12 w-full rounded-[var(--radius-control)] border-2 border-dashed border-line bg-white p-2" />
+        <p className="text-[0.9rem] text-ink-muted">Até cerca de 5 MB por aqui. Arquivos maiores: envie no painel do Supabase (bucket privado) e informe o caminho abaixo.</p>
       </div>
+      <TextField
+        label="Ou: caminho do arquivo já enviado ao armazenamento privado"
+        name="storagePath"
+        optional
+        defaultValue={v.storagePath}
+        placeholder="books/guia-do-whatsapp.pdf"
+        hint="Use somente se enviou o arquivo direto pelo painel do Supabase."
+      />
     </>
   );
 }

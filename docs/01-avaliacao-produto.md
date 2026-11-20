@@ -86,9 +86,9 @@ Início | Aprender | Resolver | Salvos | Conta
 | Banco | **PostgreSQL (Supabase)** com **RLS** | Integridade, busca em português (FTS + unaccent + trigram), políticas no banco como segunda barreira |
 | Autenticação | **Supabase Auth** (e-mail + senha; código por e-mail como alternativa) | Serviço gerenciado: hashing, limites, recuperação de senha — menos risco para uma operação de uma pessoa |
 | Arquivos | **Supabase Storage** (imagens públicas; livros em bucket privado com URL assinada) | Mesmo provedor, menos contratos |
-| Vídeo | **Cloudflare Stream** (HLS adaptativo, URLs assinadas) atrás de um adaptador | Preço por minuto, sem cobrança de banda separada, tokens assinados para conteúdo pago |
+| Vídeo | **Bunny Stream** (HLS adaptativo, links assinados) atrás de um adaptador; Cloudflare Stream como alternativa | Menor custo para o volume previsto, tokens assinados para conteúdo pago |
 | Pagamentos | **Mercado Pago** (Assinaturas `/preapproval` para recorrência por cartão; Checkout Pro para livros e Pix) atrás de um adaptador | Marca conhecida pelo público, recorrência documentada, Pix para compras avulsas |
-| Hospedagem | **Vercel** (ou qualquer host Node.js) | Deploy simples; nada no código prende ao provedor |
+| Hospedagem | **Netlify Free** (ou qualquer host Node.js) + GitHub Actions para tarefas e backup | Custo zero com uso comercial permitido; nada no código prende ao provedor |
 
 **Trocas de provedor:** vídeo, pagamento, armazenamento e autenticação ficam atrás de interfaces (`src/lib/video`, `src/lib/billing`, `src/lib/storage`, `src/lib/auth`). O acesso a dados usa SQL direto via driver `postgres` (sem PostgREST), portanto o banco pode migrar para qualquer PostgreSQL 15+.
 

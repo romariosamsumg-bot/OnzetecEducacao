@@ -7,7 +7,7 @@ import { Alert, Card } from "@/components/ui/primitives";
 import { saveContent } from "@/server/actions/admin/content";
 import type { ArticleBlock, ContentType, GuideStep } from "@/lib/content/types";
 import { contentTypeLabel } from "@/lib/content/types";
-import { BlocksEditor, ImageUploader, StepsEditor, StreamUploader } from "./editors";
+import { BlocksEditor, ImageUploader, StepsEditor, VideoUploader } from "./editors";
 
 export type ContentFormData = {
   id: string | null;
@@ -50,13 +50,25 @@ const fieldLabels: Record<string, string> = {
 };
 type CourseOption = { id: string; title: string; modules: { id: string; title: string }[] };
 
-export function ContentForm({ data, categories, courses }: { data: ContentFormData; categories: Option[]; courses: CourseOption[] }) {
+export function ContentForm({
+  data,
+  categories,
+  courses,
+  videoProvider: defaultProvider,
+}: {
+  data: ContentFormData;
+  categories: Option[];
+  courses: CourseOption[];
+  /** Provedor configurado para novos vídeos (variável VIDEO_PROVIDER) */
+  videoProvider: "bunny_stream" | "cloudflare_stream";
+}) {
   const [state, action, pending] = useActionState<FormState, FormData>(saveContent, {});
   const [cover, setCover] = useState<string | null>(data.coverImageUrl);
   const [courseId, setCourseId] = useState(data.courseId ?? "");
   const [status, setStatus] = useState(data.status);
   const [access, setAccess] = useState(data.access);
-  const [videoProvider, setVideoProvider] = useState(data.video?.provider ?? (data.type === "video" || data.type === "short" ? "cloudflare_stream" : ""));
+  const [videoProvider, setVideoProvider] = useState(data.video?.provider ?? (data.type === "video" || data.type === "short" ? defaultProvider : ""));
+  const [title, setTitle] = useState(data.title);
   const [videoId, setVideoId] = useState(data.video?.providerAssetId ?? "");
   const modules = courses.find((c) => c.id === courseId)?.modules ?? [];
   const e = state.errors ?? {};
@@ -79,7 +91,7 @@ export function ContentForm({ data, categories, courses }: { data: ContentFormDa
 
       <Card className="space-y-5 p-5">
         <h2 className="text-[1.2rem] font-bold text-navy-900">{contentTypeLabel[data.type]}: informações principais</h2>
-        <TextField label="Título" name="title" defaultValue={data.title} required error={e.title} />
+        <TextField label="Título" name="title" value={title} onChange={(ev) => setTitle(ev.target.value)} required error={e.title} />
         <TextField label="Endereço (slug)" name="slug" defaultValue={data.slug} hint="Deixe em branco para gerar a partir do título. Ex.: whatsapp-nao-toca" error={e.slug} />
         <TextArea label="Resumo público" name="summary" defaultValue={data.summary} rows={3} maxLength={600} hint="Aparece para todos e nos buscadores, mesmo em conteúdo pago." error={e.summary} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -117,26 +129,27 @@ export function ContentForm({ data, categories, courses }: { data: ContentFormDa
           <h2 className="text-[1.2rem] font-bold text-navy-900">Vídeo</h2>
           <SelectField label="Onde está o vídeo" name="videoProvider" value={videoProvider} onChange={(ev) => setVideoProvider(ev.target.value)}>
             <option value="">Sem vídeo</option>
-            <option value="cloudflare_stream">Cloudflare Stream (recomendado)</option>
+            <option value="bunny_stream">Bunny Stream{defaultProvider === "bunny_stream" ? " (configurado)" : ""}</option>
+            <option value="cloudflare_stream">Cloudflare Stream{defaultProvider === "cloudflare_stream" ? " (configurado)" : ""}</option>
             <option value="file">Arquivo de demonstração (/demo/…)</option>
           </SelectField>
-          {videoProvider === "cloudflare_stream" ? (
-            <StreamUploader premium={access === "premium"} onUploaded={(uid) => setVideoId(uid)} />
+          {videoProvider === "bunny_stream" || videoProvider === "cloudflare_stream" ? (
+            <VideoUploader provider={videoProvider} premium={access === "premium"} title={title} onUploaded={(id) => setVideoId(id)} />
           ) : null}
           {videoProvider ? (
             <TextField
-              label={videoProvider === "cloudflare_stream" ? "Identificador do vídeo no Stream (UID)" : "Caminho do arquivo"}
+              label={videoProvider === "file" ? "Caminho do arquivo" : "Identificador do vídeo no provedor"}
               name="videoAssetId"
               value={videoId}
               onChange={(ev) => setVideoId(ev.target.value)}
-              hint={videoProvider === "cloudflare_stream" ? "Preenchido automaticamente após o envio, ou cole o UID do painel do Cloudflare." : "Somente para demonstração."}
+              hint={videoProvider === "file" ? "Somente para demonstração." : "Preenchido automaticamente após o envio, ou cole o identificador (ID) do vídeo copiado do painel do provedor."}
             />
           ) : null}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <TextField label="Duração em segundos" name="durationSeconds" type="number" min={0} defaultValue={data.durationSeconds ?? ""} optional hint="Preenchida automaticamente pelo Stream quando possível." />
+            <TextField label="Duração em segundos" name="durationSeconds" type="number" min={0} defaultValue={data.durationSeconds ?? ""} optional hint="Preenchida automaticamente pelo provedor quando possível." />
             <TextField label="Miniatura do vídeo (URL)" name="posterUrl" defaultValue={data.video?.posterUrl ?? ""} optional />
           </div>
-          <TextField label="Legendas (URL de arquivo .vtt)" name="captionUrl" defaultValue={data.video?.captionUrl ?? ""} optional hint="No Stream, as legendas podem ser adicionadas no próprio Cloudflare." />
+          <TextField label="Legendas (URL de arquivo .vtt)" name="captionUrl" defaultValue={data.video?.captionUrl ?? ""} optional hint="Na Bunny ou no Cloudflare, prefira cadastrar as legendas no painel do provedor — elas são lidas automaticamente." />
           <TextArea label="Transcrição" name="transcript" defaultValue={data.transcript} rows={6} optional />
         </Card>
       ) : null}

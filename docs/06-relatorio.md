@@ -1,4 +1,15 @@
-# Relatório de entrega — versão 0.1 (19/11/2026)
+# Relatório de entrega — versão 0.2 (20/11/2026)
+
+## Novidades da versão 0.2 — configuração de custo mínimo
+
+| Item | Situação |
+|---|---|
+| Adaptador **Bunny Stream** (links assinados por pasta do vídeo, envio TUS direto do navegador, duração, situação e legendas) | ✅ assinatura testada contra uma implementação independente do algoritmo do SDK oficial / 🟡 não testado numa conta real da Bunny |
+| Hospedagem **Netlify** (`netlify.toml`) | 🟡 configurado conforme a documentação; não publicado (requer conta) |
+| **Reconciliação** de pagamentos a cada hora pelo GitHub Actions (substitui o agendador da Vercel) | 🟡 workflow pronto; executa ao configurar `SITE_URL` e `CRON_SECRET` |
+| **Backup diário criptografado** (age) pelo GitHub Actions + script de **restauração** | ✅ backup → descriptografia → restauração testados localmente num banco que simula um projeto Supabase novo: mesmas contagens, 28 tabelas com RLS, 47 políticas, conteúdo pago protegido, gatilho de cadastro e busca funcionando / 🟡 workflow não executado no GitHub |
+| Livros grandes: campo para registrar arquivo enviado direto ao Storage | ✅ (limite de ~5 MB por envio na Netlify) |
+
 
 Legenda: ✅ implementado **e** testado automaticamente · 🟡 implementado, **não** testado contra o serviço real (falta credencial) · ⬜ pendente
 
@@ -14,7 +25,7 @@ Legenda: ✅ implementado **e** testado automaticamente · 🟡 implementado, **
 | **Segurança:** visitante não acessa conteúdo pago por URL/API; usuário comum não vira admin | ✅ | `tests/db/rls.test.ts` (24 casos), `tests/e2e/security.spec.ts` |
 | **Acessibilidade:** jornadas com texto ampliado, teclado e leitor de tela | ✅ automático / ⬜ humano | axe sem violações em 20 telas; texto 130% e largura de zoom 200%; teclado. **Falta teste com TalkBack e com pessoas reais** |
 
-Resultado da última execução: **lint ✔ · tipos ✔ · 60 testes de unidade/banco ✔ · 33 testes E2E ✔ · build de produção ✔**.
+Resultado da última execução: **lint ✔ · tipos ✔ · 65 testes de unidade/banco ✔ · 33 testes E2E ✔ · build de produção ✔**.
 
 ## Bugs reais encontrados pelos testes e corrigidos
 
@@ -38,7 +49,10 @@ Resultado da última execução: **lint ✔ · tipos ✔ · 60 testes de unidade
 |---|---|
 | Supabase Auth (cadastro, login, código, recuperação) | Criar projeto, configurar templates/SMTP e testar os quatro fluxos (o ambiente local usa login de desenvolvimento) |
 | Supabase Storage | Criar buckets e enviar uma capa e um livro de teste |
-| Cloudflare Stream (reprodução assinada, envio direto, leitura de duração) | Criar chaves e validar com um vídeo real |
+| Bunny Stream (reprodução assinada, envio TUS, legendas) | Criar a biblioteca, ativar Token Authentication e fazer o teste da etapa 3.6 de docs/05 |
+| Cloudflare Stream (alternativa) | Somente se trocar `VIDEO_PROVIDER` |
+| Netlify | Publicar o site e conferir as páginas com o Supabase real |
+| GitHub Actions | Configurar segredos/variáveis e rodar os dois workflows manualmente uma vez |
 | Mercado Pago (assinatura, cancelamento, livros, webhook, reconciliação) | Roteiro completo no ambiente de testes |
 | Exclusão de conta no Supabase Auth (Admin API) | Testar com uma conta de teste |
 
@@ -48,7 +62,7 @@ Resultado da última execução: **lint ✔ · tipos ✔ · 60 testes de unidade
 2. ⬜ Revisão jurídica (docs/02 § Jurídico) e dados do fornecedor no rodapé.
 3. ⬜ Arquivos oficiais da marca (o símbolo atual é **provisório**).
 4. ⬜ Substituir o conteúdo de demonstração por conteúdo real revisado (os passos atuais são genéricos de propósito).
-5. ⬜ Envio de livros grandes direto ao Storage (hoje passa pelo servidor; limite ~4,5 MB na Vercel).
+5. ✅ Livros grandes: envio direto ao Storage + registro do caminho no painel (v0.2).
 6. ⬜ Monitoramento de erros (Sentry) e alertas de falha de pagamento por e-mail para o proprietário.
 7. ⬜ Plano anual pago à vista por Pix (sem renovação automática), se a recorrência por cartão afastar parte do público — validar com o Mercado Pago.
 8. ⬜ Métricas de Core Web Vitals em produção (`useReportWebVitals`) e teste em Android de entrada real.
@@ -62,3 +76,5 @@ Resultado da última execução: **lint ✔ · tipos ✔ · 60 testes de unidade
 - Comentários só para assinantes (contas gratuitas leem).
 - Respostas encadeadas em um nível (pergunta → respostas), para manter a simplicidade.
 - Preços: nenhum foi inventado; planos nascem sem preço e inativos.
+- Hospedagem e banco em planos gratuitos até ~50 assinaturas pagantes; depois, recomenda-se o Supabase Pro (docs/04).
+- O backup cobre o banco; arquivos do Storage (capas, livros) devem ter cópia dos originais com o proprietário.

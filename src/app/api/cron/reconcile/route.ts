@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { reconcile } from "@/lib/billing/service";
 import { env } from "@/lib/env";
 
-/** Reconciliação periódica (ex.: Vercel Cron a cada hora). Protegida por CRON_SECRET. */
+/** Reconciliação periódica (GitHub Actions a cada hora: .github/workflows/reconcile.yml). Protegida por CRON_SECRET. */
 export async function GET(request: NextRequest) {
   const secret = env().CRON_SECRET;
   const auth = request.headers.get("authorization") ?? "";

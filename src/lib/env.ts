@@ -24,6 +24,14 @@ const schema = z
     SUPABASE_PRIVATE_BUCKET: z.string().default("private-files"),
 
     DEMO_MEDIA_ENABLED: z.enum(["true", "false"]).default("false"),
+    // Provedor usado em novos envios de vídeo pelo painel
+    VIDEO_PROVIDER: z.enum(["bunny_stream", "cloudflare_stream"]).default("bunny_stream"),
+    BUNNY_STREAM_LIBRARY_ID: z.string().regex(/^\d+$/).optional(),
+    BUNNY_STREAM_API_KEY: z.string().optional(),
+    // Hostname da Pull Zone da biblioteca (ex.: vz-abc123.b-cdn.net)
+    BUNNY_STREAM_CDN_HOSTNAME: z.string().regex(/^[a-z0-9.-]+$/i).optional(),
+    // "URL Token Authentication Key" da Pull Zone (proteção dos links de vídeo)
+    BUNNY_STREAM_TOKEN_KEY: z.string().optional(),
     CLOUDFLARE_ACCOUNT_ID: z.string().optional(),
     CLOUDFLARE_STREAM_API_TOKEN: z.string().optional(),
     CLOUDFLARE_STREAM_CUSTOMER_CODE: z.string().optional(),
